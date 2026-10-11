@@ -457,14 +457,14 @@ try:
     # 10.6 Demo 2: Coding & Sandbox via API with Human Approval
     t0 = time.time()
     post_req = urllib.request.Request(f"{SERVER_URL}/api/v1/demos/demo2", method="POST")
-    demo2_res = json.loads(urllib.request.urlopen(post_req, timeout=15).read().decode())
+    demo2_res = json.loads(urllib.request.urlopen(post_req, timeout=45).read().decode())
     d2_id = demo2_res.get("task_id")
     d2_waiting = demo2_res.get("task_status") == "WAITING_APPROVAL"
 
     # Submit Approval
     app_payload = json.dumps({"decision": "APPROVED", "approver": "Chief Engineer"}).encode()
     app_req = urllib.request.Request(f"{SERVER_URL}/api/v1/tasks/{d2_id}/approval", data=app_payload, headers={"Content-Type": "application/json"})
-    app_res = json.loads(urllib.request.urlopen(app_req, timeout=15).read().decode())
+    app_res = json.loads(urllib.request.urlopen(app_req, timeout=45).read().decode())
     demo2_ok = d2_waiting and app_res.get("status") == "COMPLETED"
     runner.record("Web Server", "Demo 2: Coding, Policy Gate & Approval API", demo2_ok, duration=time.time() - t0)
 

@@ -153,23 +153,29 @@ class LocalOpenAIRuntime(ModelRuntime):
         alias_map = {
             "Qwen/Qwen3-4B": "qwen2.5:3b",
             "qwen3:4b": "qwen3:4b",
-            "Qwen/Qwen3-VL-4B-Instruct": "qwen3-vl:4b",
-            "Qwen/Qwen3-VL-8B-Instruct": "qwen3-vl:8b",
+            "Qwen/Qwen3-VL-4B-Instruct": "qwen2.5vl:3b",
+            "Qwen/Qwen3-VL-8B-Instruct": "qwen2.5vl:7b",
             "Qwen/Qwen2.5-Coder-3B-Instruct": "qwen2.5-coder:3b",
             "Qwen/Qwen2.5-Coder-7B-Instruct": "qwen2.5-coder:3b",
             "Qwen/Qwen3-Coder": "qwen3-coder:latest",
             "qwen3-small": "qwen2.5:3b",
-            "qwen3-vl-small": "qwen3-vl:4b",
+            "qwen3-vl-small": "qwen2.5vl:3b",
             "qwen-coder-small": "qwen2.5-coder:3b",
-            "vision_document": "qwen3-vl:4b",
-            "vision_model": "qwen3-vl:4b",
-            "vision": "qwen3-vl:4b",
-            "qwen3-vl": "qwen3-vl:4b",
+            "vision_document": "qwen2.5vl:3b",
+            "vision_model": "qwen2.5vl:3b",
+            "vision": "qwen2.5vl:3b",
+            "qwen3-vl": "qwen2.5vl:3b",
+            "qwen3-vl:4b": "qwen2.5vl:3b",
+            "qwen2.5vl": "qwen2.5vl:3b",
+            "qwen2.5vl:3b": "qwen2.5vl:3b",
+            "qwen2.5vl:7b": "qwen2.5vl:7b",
+            "qwen2.5-vl:3b": "qwen2.5vl:3b",
+            "qwen2.5-vl:7b": "qwen2.5vl:7b",
         }
         if target_model in alias_map:
             target_model = alias_map[target_model]
         elif target_model and any(k in target_model.lower() for k in ("vl", "vision")):
-            target_model = "qwen3-vl:4b"
+            target_model = "qwen2.5vl:3b"
 
         payload: Dict[str, Any] = {
             "model": target_model,
@@ -273,6 +279,8 @@ class LocalOpenAIRuntime(ModelRuntime):
             cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
             if cleaned:
                 content = cleaned
+        elif not content and (msg.get("reasoning") or msg.get("reasoning_content")):
+            content = msg.get("reasoning") or msg.get("reasoning_content")
         elif content == "":
             content = None
 
