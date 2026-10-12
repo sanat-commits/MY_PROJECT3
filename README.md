@@ -106,18 +106,6 @@ Soveriegn-AI-WorkBench/
 ├── requirements.txt             # Production and development dependencies
 ├── README.md                    # Main project overview & documentation
 ├── AGENTS.md                    # Core agent architecture & delegation contracts
-├── docs/                        # Architectural specifications & technical guides
-│   ├── ARCHITECTURE.md          # End-to-end system architecture specifications
-│   ├── SECURITY.md              # Zero-egress security policy & audit framework
-│   ├── DEMO_PLAN.md             # 5 core local scenario reproduction plans
-│   ├── API_CONTRACTS.md         # API endpoint and payload specifications
-│   ├── CONFIGURATION.md         # Environment and settings reference
-│   ├── MODELS.md                # Local open-weight model strategies
-│   ├── MULTIMODAL.md            # Document, OCR & vision ingestion specs
-│   ├── RAG.md                   # Hybrid retrieval & knowledge agent specs
-│   ├── SANDBOX.md               # Code execution sandbox isolation specs
-│   ├── WORKFLOW.md              # LangGraph state machine execution lifecycle
-│   └── ACCEPTANCE_MATRIX.md     # Milestone test coverage matrix
 ├── backend/
 │   └── app/
 │       ├── agents/              # Agent registry and Agent-to-Agent (A2A) messaging
