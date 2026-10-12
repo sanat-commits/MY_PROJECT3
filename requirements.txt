@@ -12,10 +12,30 @@ anyio>=4.0.0
 # Orchestration framework
 langgraph>=0.2.0
 
+# Web API & Server
+fastapi>=0.110.0
+uvicorn>=0.28.0
+python-multipart>=0.0.9
+
+# Knowledge & Sovereign RAG
+qdrant-client>=1.8.0
+rank-bm25>=0.2.2
+
+# Multimodal Document & Image Processing
+pymupdf>=1.24.0
+pillow>=10.0.0
+
+# Artifact Generation
+python-docx>=1.1.0
+openpyxl>=3.1.2
+
+# Data Analysis & Calculations
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Hardware & System Telemetry
+psutil>=5.9.0
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
-
-# Multimodal Document Processing (Phase 6)
-pymupdf>=1.24.0
-pillow>=10.0.0

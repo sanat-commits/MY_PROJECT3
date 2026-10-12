@@ -1,4 +1,4 @@
-﻿"""Local embedding engine for Phase 8 RAG - uses ModelRuntime or deterministic fallback."""
+"""Local embedding engine for Phase 8 RAG - uses ModelRuntime or deterministic fallback."""
 
 import hashlib
 import struct

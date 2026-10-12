@@ -1,4 +1,4 @@
-﻿"""Knowledge ingestion pipeline for Phase 8 RAG - reuses Phase 6 document extraction."""
+"""Knowledge ingestion pipeline for Phase 8 RAG - reuses Phase 6 document extraction."""
 
 import hashlib
 import logging

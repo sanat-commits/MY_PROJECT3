@@ -1,4 +1,4 @@
-﻿"""Phase 8 RAG tools for ToolRegistry."""
+"""Phase 8 RAG tools for ToolRegistry."""
 
 from typing import List
 from backend.app.schemas.tools import ToolContract

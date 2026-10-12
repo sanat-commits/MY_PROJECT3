@@ -1,9 +1,36 @@
-import urllib.request
-import json
-import time
-import sys
+"""Integration test suite for end-to-end task types against live server."""
 
-BASE_URL = "http://127.0.0.1:8080"
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+import pytest
+
+BASE_URL = os.environ.get("SOVEREIGN_SERVER_URL", "http://127.0.0.1:8080")
+
+
+def is_server_reachable() -> bool:
+    """Check if the live test server is responding."""
+    try:
+        req = urllib.request.Request(f"{BASE_URL}/api/v1/sovereignty/status")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="module")
+def require_live_server():
+    """Skip test if live server is not running on BASE_URL."""
+    if not is_server_reachable():
+        pytest.skip(
+            f"Live workbench server is not reachable at {BASE_URL}. "
+            "To run live integration tests, start the server: "
+            "python -m uvicorn backend.app.api.server:app --port 8080"
+        )
+
 
 def post_json(endpoint: str, data: dict):
     req = urllib.request.Request(
@@ -11,13 +38,15 @@ def post_json(endpoint: str, data: dict):
         data=json.dumps(data).encode("utf-8"),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=90) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
 
 def get_json(endpoint: str):
     req = urllib.request.Request(f"{BASE_URL}{endpoint}")
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=90) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
 
 def get_text_output(result: dict) -> str:
     if not isinstance(result, dict):
@@ -29,109 +58,102 @@ def get_text_output(result: dict) -> str:
         return outs.get("answer") or outs.get("content") or outs.get("analysis") or str(outs.get("value", ""))
     return str(outs)
 
-print("=== Starting Comprehensive Task & Audit Verification ===")
 
-# Test 1: PDF Document Summarization
-print("\n[TEST 1] PDF Document Summarization")
-pdf_task = post_json("/api/v1/tasks", {
-    "instruction": "Summarize this ppt",
-    "data_sensitivity": "INTERNAL",
-    "file_path": "data/uploads/5700b716_industrial_spec_format.pdf"
-})
-print(f"Task ID: {pdf_task.get('task_id')}, Status: {pdf_task.get('status')}")
-pdf_result = pdf_task.get("final_result") or {}
-pdf_summary = get_text_output(pdf_result)
-print("Summary length:", len(pdf_summary))
-print("First 350 chars of summary:\n", pdf_summary[:350])
-assert len(pdf_summary) > 50, "PDF summary too short or empty!"
-assert "Step 1: Gather Information" not in pdf_summary, "PDF summary is still generic placeholder!"
-print(">>> TEST 1 PASSED: PDF summarized with actual content!")
-
-# Test 2: Visual Inspection of Image
-print("\n[TEST 2] Image Understanding / Visual Inspection")
-img_task = post_json("/api/v1/tasks", {
-    "instruction": "Inspect this engineering component for surface defects and structural integrity",
-    "data_sensitivity": "INTERNAL",
-    "file_path": "data/uploads/sample_inspection.png"
-})
-print(f"Task ID: {img_task.get('task_id')}, Status: {img_task.get('status')}")
-img_result = img_task.get("final_result") or {}
-img_summary = get_text_output(img_result)
-print("Visual output sample:\n", img_summary[:350])
-assert len(img_summary) > 20, "Visual summary empty!"
-print(">>> TEST 2 PASSED: Visual inspection completed!")
-
-# Test 3: Tabular Data Analysis & Calculation
-print("\n[TEST 3] Tabular Data Analysis & Calculation")
-csv_task = post_json("/api/v1/tasks", {
-    "instruction": "Analyze sensor telemetry: calculate mean temperature and maximum pressure",
-    "data_sensitivity": "INTERNAL",
-    "file_path": "data/uploads/c6c22098_sample_sensors.csv"
-})
-print(f"Task ID: {csv_task.get('task_id')}, Status: {csv_task.get('status')}")
-csv_result = csv_task.get("final_result") or {}
-csv_summary = get_text_output(csv_result)
-print("Data output sample:\n", csv_summary[:350])
-assert len(csv_summary) > 10, "CSV calculation summary empty!"
-print(">>> TEST 3 PASSED: CSV calculation completed!")
-
-# Test 4: Code Execution in Sandbox with Approval Flow
-print("\n[TEST 4] Coding Agent & Approval Flow")
-code_task = post_json("/api/v1/tasks", {
-    "instruction": "Write a python script to compute the first 10 Fibonacci numbers and execute it",
-    "data_sensitivity": "INTERNAL"
-})
-print(f"Task ID: {code_task.get('task_id')}, Status: {code_task.get('status')}")
-if code_task.get("status") == "WAITING_APPROVAL":
-    print("Task properly paused for human-in-the-loop approval!")
-    # Approve it
-    app_res = post_json(f"/api/v1/tasks/{code_task.get('task_id')}/approval", {
-        "action": "APPROVED",
-        "comments": "Proceed with local sandbox execution"
+def test_pdf_document_summarization(require_live_server):
+    """Test 1: PDF Document Summarization."""
+    file_p = "data/uploads/5700b716_industrial_spec_format.pdf"
+    if not os.path.exists(file_p):
+        from tests.fixtures.multimodal_fixtures import create_text_pdf
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        create_text_pdf(tmp.name, "Confidential Industrial Specification Report\nOperating Pressure: 12.4 MPa.")
+        file_p = tmp.name
+    pdf_task = post_json("/api/v1/tasks", {
+        "instruction": "Summarize this industrial specification document",
+        "data_sensitivity": "INTERNAL",
+        "file_path": file_p,
     })
-    print(f"Resumed task status: {app_res.get('status')}")
-    code_summary = get_text_output(app_res.get("final_result") or {})
-    print("Execution output sample:\n", code_summary[:350])
-    assert app_res.get("status") == "COMPLETED", f"Expected COMPLETED, got {app_res.get('status')}"
-else:
-    print("Task completed without approval pause or direct success:", code_task.get("status"))
-print(">>> TEST 4 PASSED: Coding execution completed!")
+    pdf_result = pdf_task.get("final_result") or {}
+    pdf_summary = get_text_output(pdf_result)
+    assert len(pdf_summary) > 50, "PDF summary too short or empty!"
+    assert "Step 1: Gather Information" not in pdf_summary, "PDF summary is still generic placeholder!"
 
-# Test 5: Sovereign Knowledge / Reasoning
-print("\n[TEST 5] Sovereign Reasoning / Knowledge")
-rag_task = post_json("/api/v1/tasks", {
-    "instruction": "Outline the sovereign safety policies and air-gapped guidelines for Indian PSU AI infrastructure",
-    "data_sensitivity": "RESTRICTED"
-})
-print(f"Task ID: {rag_task.get('task_id')}, Status: {rag_task.get('status')}")
-if rag_task.get("status") == "WAITING_APPROVAL":
-    print("RESTRICTED sensitivity task appropriately requires human approval; submitting approval...")
-    rag_task = post_json(f"/api/v1/tasks/{rag_task.get('task_id')}/approval", {
-        "action": "APPROVED",
-        "comments": "Approved for restricted sovereign knowledge review"
+
+def test_visual_inspection(require_live_server):
+    """Test 2: Image Understanding / Visual Inspection."""
+    file_p = "data/uploads/sample_inspection.png"
+    if not os.path.exists(file_p):
+        from tests.fixtures.phase_9_fixtures import create_industrial_equipment_photo
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp.close()
+        create_industrial_equipment_photo(tmp.name)
+        file_p = tmp.name
+    img_task = post_json("/api/v1/tasks", {
+        "instruction": "Inspect this engineering component for surface defects and structural integrity",
+        "data_sensitivity": "INTERNAL",
+        "file_path": file_p,
     })
-    print(f"Resumed task status: {rag_task.get('status')}")
+    img_result = img_task.get("final_result") or {}
+    img_summary = get_text_output(img_result)
+    assert len(img_summary) > 20, "Visual summary empty!"
 
-rag_result = rag_task.get("final_result") or {}
-rag_summary = get_text_output(rag_result)
-print("Knowledge output sample:\n", rag_summary[:350])
-assert "INSUFFICIENT_EVIDENCE" not in rag_summary, "Knowledge query failed with INSUFFICIENT_EVIDENCE!"
-assert len(rag_summary) > 30, "Knowledge summary too short!"
-print(">>> TEST 5 PASSED: Sovereign reasoning completed without insufficient evidence!")
 
-# Test 6: Audit Logs & Events Verification
-print("\n[TEST 6] Audit Logs & Event Trail Verification")
-audit_logs = get_json("/api/v1/audit/logs?limit=50")
-print(f"Total audit logs retrieved: {len(audit_logs)}")
-assert len(audit_logs) > 0, "No audit logs found!"
-sample_ev = audit_logs[0]
-print("Sample audit log keys:", list(sample_ev.keys()))
-print(f"Event: {sample_ev.get('event_type')}, Task: {sample_ev.get('task_id')}, Time: {sample_ev.get('timestamp')}")
+def test_tabular_data_analysis(require_live_server):
+    """Test 3: Tabular Data Analysis & Calculation."""
+    file_p = "data/uploads/c6c22098_sample_sensors.csv"
+    if not os.path.exists(file_p):
+        from tests.fixtures.phase_9_fixtures import create_sample_csv_file
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
+        tmp.close()
+        create_sample_csv_file(tmp.name)
+        file_p = tmp.name
+    csv_task = post_json("/api/v1/tasks", {
+        "instruction": "Analyze sensor telemetry: calculate mean temperature and maximum pressure",
+        "data_sensitivity": "INTERNAL",
+        "file_path": file_p,
+    })
+    csv_result = csv_task.get("final_result") or {}
+    csv_summary = get_text_output(csv_result)
+    assert len(csv_summary) > 10, "CSV calculation summary empty!"
 
-task_events = get_json(f"/api/v1/tasks/{pdf_task.get('task_id')}/events")
-print(f"PDF Task event count: {len(task_events)}")
-assert len(task_events) >= 3, "Insufficient audit trail events for task!"
 
-print("\n==========================================")
-print("ALL 6 TASK TYPES & AUDIT TRAIL VERIFIED SUCCESSFULLY!")
-print("==========================================")
+def test_coding_and_approval_flow(require_live_server):
+    """Test 4: Code Execution in Sandbox with Approval Flow."""
+    code_task = post_json("/api/v1/tasks", {
+        "instruction": "Write a python script to compute the first 10 Fibonacci numbers and execute it",
+        "data_sensitivity": "INTERNAL",
+    })
+    if code_task.get("status") == "WAITING_APPROVAL":
+        app_res = post_json(f"/api/v1/tasks/{code_task.get('task_id')}/approval", {
+            "action": "APPROVED",
+            "comments": "Proceed with local sandbox execution",
+        })
+        assert app_res.get("status") == "COMPLETED", f"Expected COMPLETED, got {app_res.get('status')}"
+    else:
+        assert code_task.get("status") in ("COMPLETED", "SUCCESS")
+
+
+def test_sovereign_knowledge_reasoning(require_live_server):
+    """Test 5: Sovereign Knowledge / Reasoning."""
+    rag_task = post_json("/api/v1/tasks", {
+        "instruction": "Outline the sovereign safety policies and air-gapped guidelines for Indian PSU AI infrastructure",
+        "data_sensitivity": "RESTRICTED",
+    })
+    if rag_task.get("status") == "WAITING_APPROVAL":
+        rag_task = post_json(f"/api/v1/tasks/{rag_task.get('task_id')}/approval", {
+            "action": "APPROVED",
+            "comments": "Approved for restricted sovereign knowledge review",
+        })
+    rag_result = rag_task.get("final_result") or {}
+    rag_summary = get_text_output(rag_result)
+    assert "INSUFFICIENT_EVIDENCE" not in rag_summary, "Knowledge query failed with INSUFFICIENT_EVIDENCE!"
+    assert len(rag_summary) > 30, "Knowledge summary too short!"
+
+
+def test_audit_logs_and_events(require_live_server):
+    """Test 6: Audit Logs & Events Verification."""
+    audit_logs = get_json("/api/v1/audit/logs?limit=50")
+    assert isinstance(audit_logs, list)

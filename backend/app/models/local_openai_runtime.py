@@ -117,7 +117,11 @@ class LocalOpenAIRuntime(ModelRuntime):
                                 "image_url": {"url": f"data:{mime};base64,{b64}"}
                             })
                         else:
-                            parts.append({"type": "text", "text": f"[Image file not found: {local_p}]"})
+                            fallback_url = local_p if local_p.startswith("file://") else f"file:///{local_p.lstrip('/')}"
+                            parts.append({
+                                "type": "image_url",
+                                "image_url": {"url": fallback_url}
+                            })
                 entry["content"] = parts
 
             if msg.name:

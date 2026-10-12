@@ -1,4 +1,4 @@
-﻿"""Structured exceptions for Phase 8 Local Hybrid RAG & Sovereign Knowledge Agent."""
+"""Structured exceptions for Phase 8 Local Hybrid RAG & Sovereign Knowledge Agent."""
 
 from typing import Optional, Dict, Any
 

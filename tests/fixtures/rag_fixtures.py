@@ -1,4 +1,4 @@
-﻿"""Test fixtures for Phase 8 RAG test suite - deterministic local knowledge base."""
+"""Test fixtures for Phase 8 RAG test suite - deterministic local knowledge base."""
 
 # Mini knowledge base documents
 

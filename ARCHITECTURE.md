@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    U[User] --> UI[Next.js / React UI]
+    U[User] --> UI[Web Workbench UI (HTML5/CSS3/Vanilla JS)]
     UI --> API[FastAPI]
     API --> G[LangGraph Orchestrator]
 

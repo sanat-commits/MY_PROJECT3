@@ -1,4 +1,4 @@
-﻿"""Phase 8 — Local Hybrid RAG & Sovereign Knowledge Agent."""
+"""Phase 8 — Local Hybrid RAG & Sovereign Knowledge Agent."""
 
 from backend.app.rag.schemas import (
     KnowledgeSource,

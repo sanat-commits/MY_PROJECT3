@@ -1,4 +1,4 @@
-﻿"""Deterministic query processor for Phase 8 RAG."""
+"""Deterministic query processor for Phase 8 RAG."""
 
 import re
 from typing import Any, Dict, List, Optional

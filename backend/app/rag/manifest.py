@@ -1,4 +1,4 @@
-﻿"""Local index manifest store for Phase 8 RAG knowledge lifecycle management."""
+"""Local index manifest store for Phase 8 RAG knowledge lifecycle management."""
 
 import json
 import logging
@@ -28,6 +28,9 @@ class ManifestStore:
 
     def _load(self) -> None:
         if os.path.exists(self.path):
+            if os.path.getsize(self.path) == 0:
+                self._manifests = {}
+                return
             try:
                 with open(self.path, "r", encoding="utf-8") as f:
                     raw = json.load(f)

@@ -1,4 +1,4 @@
-﻿"""Hybrid retriever combining dense (Qdrant) and lexical (BM25) with RRF fusion."""
+"""Hybrid retriever combining dense (Qdrant) and lexical (BM25) with RRF fusion."""
 
 import logging
 from typing import Any, Dict, List, Optional

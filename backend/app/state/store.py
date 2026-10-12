@@ -3,6 +3,7 @@
 import json
 import os
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
@@ -104,7 +105,31 @@ class LocalStateStore(StateStore):
                 f.flush()
                 os.fsync(f.fileno())
 
-            os.replace(temp_path, str(target_path))
+            # Resilient atomic file replacement across Windows / OneDrive file locks
+            replaced = False
+            for attempt in range(5):
+                try:
+                    os.replace(temp_path, str(target_path))
+                    replaced = True
+                    break
+                except (PermissionError, OSError):
+                    time.sleep(0.05 * (attempt + 1))
+
+            if not replaced:
+                try:
+                    if target_path.exists():
+                        try:
+                            target_path.unlink()
+                        except Exception:
+                            pass
+                    os.replace(temp_path, str(target_path))
+                except Exception:
+                    target_path.write_text(content, encoding="utf-8")
+                    try:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)
+                    except Exception:
+                        pass
 
             # Also ensure events are mirrored to the append-only event log
             if task.events:

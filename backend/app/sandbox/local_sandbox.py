@@ -84,9 +84,13 @@ except Exception:
     pass
 
 # 4. Remove network environment proxies
-for _k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"]:
-    if _k in sys.modules.get("os", {}).environ:
-        del sys.modules["os"].environ[_k]
+try:
+    import os
+    for _k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"]:
+        if _k in os.environ:
+            del os.environ[_k]
+except Exception:
+    pass
 """
 
 
@@ -256,8 +260,9 @@ class LocalProcessSandbox(BaseSandbox):
 
         # Copy created artifacts to central artifacts cache
         if created_files and os.path.exists(self._workspace_path):
+            from backend.app.config.settings import get_settings
             artifacts_dir = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "cache", "artifacts")
+                os.path.join(get_settings().DATA_ROOT, "cache", "artifacts")
             )
             os.makedirs(artifacts_dir, exist_ok=True)
             for cf in created_files:
